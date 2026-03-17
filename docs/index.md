@@ -10,7 +10,7 @@ exposed over HTTPS through Synology's built-in DDNS and reverse proxy.
 ```
 Internet
    │
-   │  https://n8n.er-buco-nas.familyds.net  (port 443)
+   │  https://n8n.<your-nas-name>.familyds.net  (port 443)
    ▼
 ┌──────────────────────────────────────────┐
 │  Synology DSM — Reverse Proxy            │
@@ -37,13 +37,14 @@ It keeps the DNS record pointing to your home IP address even when the ISP chang
 
 1. Open **DSM → Control Panel → External Access → DDNS** and click **Add**.
 2. Choose **Synology** as the service provider and pick a hostname —
-   e.g. `er-buco-nas.familyds.net`.
+   e.g. `<your-nas-name>.familyds.net`.
 3. Enable **Heartbeat** so DSM updates the record automatically whenever the IP changes.
 4. Optionally, request a **Let's Encrypt certificate** for the hostname via
    **DSM → Control Panel → Security → Certificate**. DSM renews it automatically.
 
-> The DDNS hostname used in this setup is `n8n.er-buco-nas.familyds.net` — a subdomain of the
-> base DDNS name, covered by the same certificate (wildcard or SAN).
+> **`<your-nas-name>`** is the hostname you chose when registering the DDNS entry in step 2.
+> The full n8n subdomain will be `n8n.<your-nas-name>.familyds.net` — covered by the same
+> certificate (wildcard or SAN).
 
 ---
 
@@ -52,13 +53,18 @@ It keeps the DNS record pointing to your home IP address even when the ISP chang
 Configured in **DSM → Control Panel → Login Portal → Advanced → Reverse Proxy**.
 It terminates TLS and forwards requests to the n8n container on `localhost:5678`.
 
+> **Source hostname:** the hostname is constructed by prefixing your DDNS base name with any
+> subdomain of your choice. Here we use `n8n`, giving `n8n.<your-nas-name>.familyds.net`.
+> You can use any prefix — just make sure it matches the `WEBHOOK_URL` in the Docker script
+> and is covered by your certificate.
+
 ### General tab
 
 | Field | Value |
 |---|---|
 | Reverse Proxy Name | `n8n` |
 | Source — Protocol | `HTTPS` |
-| Source — Hostname | `n8n.er-buco-nas.familyds.net` |
+| Source — Hostname | `n8n.<your-nas-name>.familyds.net` |
 | Source — Port | `443` |
 | Enable HSTS | ✅ enabled |
 | Access control profile | Not configured |
@@ -92,7 +98,7 @@ sudo docker run -it --rm \
     -e GENERIC_TIMEZONE="Europe/Brussels" \
     -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
     -e N8N_RUNNERS_ENABLED=true \
-    -e WEBHOOK_URL=https://n8n.er-buco-nas.familyds.net \
+    -e WEBHOOK_URL=https://n8n.<your-nas-name>.familyds.net \
     -e N8N_PROXY_HOPS=1 \
     -v n8n_data:/volume1/docker/n8n/data \
 docker.n8n.io/n8nio/n8n
@@ -114,6 +120,11 @@ docker.n8n.io/n8nio/n8n
 
 The named Docker volume `n8n_data` is stored under `/volume1/docker/n8n/data` on the NAS.
 This directory persists all workflows, credentials, and execution history across container restarts.
+
+> **Note:** `/volume1` is the name Synology DSM assigns to the first storage volume. This may
+> differ depending on your NAS model and disk configuration. To confirm the correct path on your
+> system, open **DSM → Storage Manager** and check the volume name, or simply run
+> `ls /volume*` from an SSH session on the NAS.
 
 ---
 
